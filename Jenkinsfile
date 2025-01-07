@@ -2,59 +2,48 @@ pipeline {
     agent any
     
     environment {
-        docker_image = 'quizzer-app'
-        docker_tag = "${build_number}"
-        // add database credentials from jenkins credentials
-        db_creds = credentials('db_credentials')
+        DOCKER_IMAGE = 'quizzer-app'
+        DOCKER_TAG = "${BUILD_NUMBER}"
+        DB_CREDS = credentials('DB_CREDENTIALS')
+        JWT_SECRET = credentials('JWT_SECRET')
+        DB_URL = credentials('DB_URL')
     }
     
     stages {
-        stage('checkout') {
+        stage('Build') {
             steps {
-                checkout scm
+                // Build with Maven
+                sh 'mvn clean package -DskipTests'
             }
         }
         
-        stage('build') {
-            steps {
-                // build with maven
-                sh 'mvn clean package -dskiptests'
-            }
-        }
-        
-        // stage('test') {
-        //     steps {
-        //         sh 'mvn test'
-        //     }
-        // }
-        
-        stage('docker build') {
-            when { branch 'main' }  // only on main branch
+        stage('Docker Build') {
             steps {
                 script {
-                    // build new image
-                    sh "docker build -t ${docker_image}:${docker_tag} ."
+                    // Build new image
+                    sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
                 }
             }
         }
         
-        stage('deploy') {
-            when { branch 'main' }  // only on main branch
+        stage('Deploy') {
             steps {
                 script {
-                    // stop existing container
-                    sh "docker stop ${docker_image} || true"
-                    sh "docker rm ${docker_image} || true"
+                    // Stop existing container
+                    sh "docker stop ${DOCKER_IMAGE} || true"
+                    sh "docker rm ${DOCKER_IMAGE} || true"
                     
-                    // run new container with environment variables
+                    // Run new container with environment variables
                     sh """
                         docker run -d \
-                        --name ${docker_image} \
+                        --name ${DOCKER_IMAGE} \
                         -p 8080:8080 \
-                        -e spring_datasource_username=${db_creds_usr} \
-                        -e spring_datasource_password=${db_creds_psw} \
+                        -e SPRING_DATASOURCE_URL=${DB_URL} \
+                        -e SPRING_DATASOURCE_USERNAME=${DB_CREDS_USR} \
+                        -e SPRING_DATASOURCE_PASSWORD=${DB_CREDS_PSW} \
+                        -e JWT_SECRET=${JWT_SECRET} \
                         --restart unless-stopped \
-                        ${docker_image}:${docker_tag}
+                        ${DOCKER_IMAGE}:${DOCKER_TAG}
                     """
                 }
             }
@@ -63,10 +52,10 @@ pipeline {
     
     post {
         success {
-            echo 'pipeline succeeded!'
+            echo 'Pipeline succeeded!'
         }
         failure {
-            echo 'pipeline failed!'
+            echo 'Pipeline failed!'
         }
     }
 }
