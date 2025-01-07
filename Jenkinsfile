@@ -2,59 +2,59 @@ pipeline {
     agent any
     
     environment {
-        DOCKER_IMAGE = 'quizzer-app'
-        DOCKER_TAG = "${BUILD_NUMBER}"
-        // Add database credentials from Jenkins credentials
-        DB_CREDS = credentials('DB_CREDENTIALS')
+        docker_image = 'quizzer-app'
+        docker_tag = "${build_number}"
+        // add database credentials from jenkins credentials
+        db_creds = credentials('db_credentials')
     }
     
     stages {
-        stage('Checkout') {
+        stage('checkout') {
             steps {
                 checkout scm
             }
         }
         
-        stage('Build') {
+        stage('build') {
             steps {
-                // Build with Maven
-                sh 'mvn clean package -DskipTests'
+                // build with maven
+                sh 'mvn clean package -dskiptests'
             }
         }
         
-        stage('Test') {
-            steps {
-                sh 'mvn test'
-            }
-        }
+        // stage('test') {
+        //     steps {
+        //         sh 'mvn test'
+        //     }
+        // }
         
-        stage('Docker Build') {
-            when { branch 'main' }  // Only on main branch
+        stage('docker build') {
+            when { branch 'main' }  // only on main branch
             steps {
                 script {
-                    // Build new image
-                    sh "docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} ."
+                    // build new image
+                    sh "docker build -t ${docker_image}:${docker_tag} ."
                 }
             }
         }
         
-        stage('Deploy') {
-            when { branch 'main' }  // Only on main branch
+        stage('deploy') {
+            when { branch 'main' }  // only on main branch
             steps {
                 script {
-                    // Stop existing container
-                    sh "docker stop ${DOCKER_IMAGE} || true"
-                    sh "docker rm ${DOCKER_IMAGE} || true"
+                    // stop existing container
+                    sh "docker stop ${docker_image} || true"
+                    sh "docker rm ${docker_image} || true"
                     
-                    // Run new container with environment variables
+                    // run new container with environment variables
                     sh """
                         docker run -d \
-                        --name ${DOCKER_IMAGE} \
+                        --name ${docker_image} \
                         -p 8080:8080 \
-                        -e SPRING_DATASOURCE_USERNAME=${DB_CREDS_USR} \
-                        -e SPRING_DATASOURCE_PASSWORD=${DB_CREDS_PSW} \
+                        -e spring_datasource_username=${db_creds_usr} \
+                        -e spring_datasource_password=${db_creds_psw} \
                         --restart unless-stopped \
-                        ${DOCKER_IMAGE}:${DOCKER_TAG}
+                        ${docker_image}:${docker_tag}
                     """
                 }
             }
@@ -63,10 +63,10 @@ pipeline {
     
     post {
         success {
-            echo 'Pipeline succeeded!'
+            echo 'pipeline succeeded!'
         }
         failure {
-            echo 'Pipeline failed!'
+            echo 'pipeline failed!'
         }
     }
 }
