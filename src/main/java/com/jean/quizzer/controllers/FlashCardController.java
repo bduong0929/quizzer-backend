@@ -29,7 +29,7 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/flashcards")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
+@CrossOrigin(origins = "*", allowCredentials = "true")
 public class FlashCardController {
     private final FlashCardService flashCardService;
     private final StudySetService studySetService;
